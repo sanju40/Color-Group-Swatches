@@ -66,98 +66,94 @@ Fields:
 - Ensure current product is included
 - Load JS and CSS once per page
 
+
 **Path**
+
+```
+snippets/color-swatches-group.liquid
 ```
 
-snippets/color-swatches-group.liquid
-
-````
-
 ```liquid
-{%- comment -%}
-color-swatches-group.liquid
-Resolves color group products and renders swatches
-{%- endcomment -%}
+{% comment %}
+  Renders a products list from the color group/metafield
 
+  Accepts:
+  - product: {Object} product (required)
+  - media_aspect_ratio: {String} Size of the product image card. Values are "square" and "portrait". Default is "square" (optional)
+  - image_shape: {String} Image mask to apply to the product image card. Values are "arch", "blob", "chevronleft", "chevronright", "diamond", "parallelogram", and "round". (optional)
+  - show_secondary_image: {Boolean} Show the secondary image on hover. Default: false (optional)
+  - show_vendor: {Boolean} Show the product vendor. Default: false
+  - show_rating: {Boolean} Show the product rating. Default: false
+  - quick_add: {Boolean} Show the quick add button.
+
+  Usage:
+  {% render 'color-swatches-group', product:product, show_vendor: section.settings.show_vendor %}
+{% endcomment %}
 {% assign current_product_in_group = false %}
+{% assign related_color_products = product.metafields.product.related_color_product | default:product.metafields.custom.related_color_product %}
 
-{% assign related_color_products =
-  product.metafields.product.related_color_product
-  | default: product.metafields.custom.related_color_product
-%}
+{% assign related_colors_metaobject = product.metafields.custom.color_group.value | default:product.metafields.product.color_group.value %}
+{% assign metaobject_color_products = related_colors_metaobject.product.value | default:related_colors_metaobject.products.value %}
+{% assign color_products = related_color_products.value | default:metaobject_color_products %}
 
-{% assign related_colors_metaobject =
-  product.metafields.custom.color_group.value
-  | default: product.metafields.product.color_group.value
-%}
-
-{% assign metaobject_color_products =
-  related_colors_metaobject.product.value
-  | default: related_colors_metaobject.products.value
-%}
-
-{% assign color_products =
-  related_color_products.value
-  | default: metaobject_color_products
-%}
-
+{% comment %} {{ color_products | json }} {% endcomment %}
 {% if color_products and color_products.size > 0 %}
-  <variant-selects
-    data-ele="variant-product-selects"
-    data-ele-type="{{ location }}"
-  >
-    <fieldset class="product-form__input product-form__input--pill">
-      <legend class="form__label">
-        {{ block.setting.option_heading | default: 'Colors' }}
-      </legend>
-
-      <div data-ele="variant-product-options-container">
-        {% for referenced_product in color_products %}
-          {% if product.id == referenced_product.id %}
-            {% assign current_product_in_group = true %}
-          {% endif %}
-
-          {% render 'color-swatches-group-snippet',
-            product: product,
-            referenced_product: referenced_product,
-            media_aspect_ratio: media_aspect_ratio,
-            image_shape: image_shape,
-            show_secondary_image: show_secondary_image,
-            show_vendor: show_vendor,
-            show_rating: show_rating,
-            quick_add: quick_add
-          %}
-        {% endfor %}
-
-        {% if current_product_in_group == false %}
-          {% render 'color-swatches-group-snippet',
-            product: product,
-            referenced_product: product
-          %}
-        {% endif %}
-      </div>
-    </fieldset>
-  </variant-selects>
+    <variant-selects id="variant-product-selects-template--{{ section.id }}__main" data-section="template--product-{{ section.id }}__main" data-ele="variant-product-selects" data-ele-type="{{ location }}">
+      <fieldset class="js product-form__input product-form__input--pill">
+          <legend class="form__label">{{ block.setting.option_heading | default: 'Colors' }}</legend>
+          <div class="variant-product-options-container" data-ele="variant-product-options-container">
+            {% for referenced_product in color_products %}
+                {% if product.id == referenced_product.id %}
+                    {% assign current_product_in_group = true %}
+                {% endif %}
+                {% render 'color-swatches-group-snippet', 
+                  product: product,
+                  referenced_product: referenced_product,
+                  media_aspect_ratio: media_aspect_ratio,
+                  image_shape: image_shape,
+                  show_secondary_image: show_secondary_image,
+                  show_vendor: show_vendor,
+                  show_rating: show_rating,
+                  quick_add: quick_add 
+                %}
+            {% endfor %}
+            {% if current_product_in_group == false %}
+              {% render 'color-swatches-group-snippet', 
+                product: product,
+                referenced_product: product,
+                media_aspect_ratio: media_aspect_ratio,
+                image_shape: image_shape,
+                show_secondary_image: show_secondary_image,
+                show_vendor: show_vendor,
+                show_rating: show_rating,
+                quick_add: quick_add 
+              %}
+            {% endif %}
+          </div>
+      </fieldset>
+    </variant-selects>
 {% endif %}
 
 <script>
-(function () {
-  if (!document.getElementById('color-swatch-group--js')) {
-    const js = document.createElement('script');
-    js.id = 'color-swatch-group--js';
-    js.type = 'module';
-    js.src = "{{ 'color-swatch-group.js' | asset_url }}";
-    document.head.appendChild(js);
-  }
+  (function () {
+    // Load JS module
+    if (!document.getElementById('color-swatch-group--js')) {
+      var js = document.createElement('script');
+      js.id = 'color-swatch-group--js';
+      js.type = 'module';
+      js.src = "{{ 'color-swatch-group.js' | asset_url }}";
+      document.head.appendChild(js);
+    }
 
-  if (!document.getElementById('color-swatch-group--css')) {
-    const css = document.createElement('link');
-    css.id = 'color-swatch-group--css';
-    css.rel = 'stylesheet';
-    css.href = "{{ 'color-swatch-group-swatch.css' | asset_url }}";
-    document.head.appendChild(css);
-  }
-})();
+    // Load CSS
+    if (!document.getElementById('color-swatch-group--css')) {
+      var css = document.createElement('link');
+      css.id = 'color-swatch-group--css';
+      css.rel = 'stylesheet';
+      css.href = "{{ 'color-swatch-group-swatch.css' | asset_url }}";
+      document.head.appendChild(css);
+    }
+  })();
 </script>
 ````
 
@@ -178,34 +174,53 @@ snippets/color-swatches-group-snippet.liquid
 ```
 
 ```liquid
-<span
-  id="option--product--{{ referenced_product.id }}"
-  class="variant-option {% if product.id == referenced_product.id %}active-option{% endif %}"
->
-  <a
-    data-ele="color-group-product"
-    href="{{ referenced_product.url }}"
-    data-action="{{ referenced_product.url }}.json"
-    data-action-card-json="{{ referenced_product.url }}?view=product-card-json"
-    data-media_aspect_ratio="{{ media_aspect_ratio }}"
-    data-image_shape="{{ image_shape }}"
-    data-show_secondary_image="{{ show_secondary_image }}"
-    data-show_vendor="{{ show_vendor }}"
-    data-show_rating="{{ show_rating }}"
-    data-quick_add="{{ quick_add }}"
-  >
-    {% if referenced_product.featured_image %}
-      {% assign image_url = referenced_product.featured_image | image_url: width: 50 %}
-      <span
-        class="swatch swatch--square"
-        style="--swatch--background: url({{ image_url }});"
-      ></span>
-    {% else %}
-      <span class="swatch swatch--square">
-        {{ referenced_product.title }}
-      </span>
-    {% endif %}
-  </a>
+{% comment %}
+  Renders products card for the color group/metafield
+
+  Accepts:
+  - referenced_product: {Object} product (required)
+  - media_aspect_ratio: {String} Size of the product image card. Values are "square" and "portrait". Default is "square" (optional)
+  - image_shape: {String} Image mask to apply to the product image card. Values are "arch", "blob", "chevronleft", "chevronright", "diamond", "parallelogram", and "round". (optional)
+  - show_secondary_image: {Boolean} Show the secondary image on hover. Default: false (optional)
+  - show_vendor: {Boolean} Show the product vendor. Default: false
+  - show_rating: {Boolean} Show the product rating. Default: false
+  - quick_add: {Boolean} Show the quick add button.
+
+  Usage:
+  {% render 'color-swatches-group-snippet', product:product, show_vendor: section.settings.show_vendor %}
+{% endcomment %}
+<span ele-id="option--product--{{ referenced_product.id }}" class="variant-option {% if product.id == referenced_product.id %} {{ 'active-option' }} {% endif %}">
+    <span class="visually-hidden label-unavailable">Variant sold out or unavailable</span>
+    <a 
+        data-p-id="{{ product.id }}"
+        id="QuickAddInfo-{{ product.id }}"
+        data-ele="color-group-product" 
+        href="{{ referenced_product.url }}" 
+        data-action="{{ referenced_product.url | append: '.json' }}"
+        data-action-card-json="{{ referenced_product.url | append: '?view=product-card-json' }}"
+        data-media_aspect_ratio="{{ media_aspect_ratio }}"
+        data-image_shape="{{ image_shape }}"
+        data-show_secondary_image="{{ show_secondary_image }}"
+        data-show_vendor="{{ show_vendor }}"
+        data-show_rating="{{ show_rating }}"
+        data-quick_add="{{ quick_add }}"
+    >
+        {% if referenced_product.featured_image %}
+            {%- liquid
+                assign image_url = referenced_product.featured_image | image_url: width: 50
+                assign swatch_value = 'url(' | append: image_url | append: ')'
+                assign swatch_focal_point = swatch.image.presentation.focal_point
+            -%}
+            <span
+            {% if swatch_value %}
+                class="swatch{% if shape == 'square' %} swatch--square{% endif %}"
+                style="--swatch--background: {{ swatch_value }};{% if swatch_focal_point %} --swatch-focal-point: {{ swatch_focal_point }};{% endif %}"
+            {% endif %}
+            ></span>
+        {% else %}
+            <span class="swatch swatch--square">{{ referenced_product.title }}</span>
+        {% endif %}
+    </a>
 </span>
 ```
 
