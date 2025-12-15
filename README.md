@@ -1,0 +1,436 @@
+---
+
+```md
+# Color Group Swatches (Product-Based)
+## Shopify Implementation Guide
+
+---
+
+## Overview
+
+This feature implements **color swatches using separate products**, not Shopify variants.
+
+Each color is its own product, but from a user perspective it behaves like a variant selector.
+
+### Supported Areas
+
+- Collection product cards (listing pages)
+- Product detail page
+- Quick Add modal
+- Dynamic product card replacement (no page reload)
+- Metaobject-based grouping with product-level override
+
+### Why This Approach
+
+- Avoids Shopify variant limits
+- Allows unique images, pricing, inventory per color
+- Better SEO (each color has its own URL)
+- Cleaner merchandising and analytics
+
+---
+
+## Data Model
+
+### Product Metafields (Priority Order)
+
+1. **`custom.related_color_product`**
+   - Type: List of products
+   - Optional
+   - If set, this overrides all other sources
+
+2. **`custom.color_group`**
+   - Type: Metaobject reference
+   - Used only if `related_color_product` is empty
+
+---
+
+### Metaobject: `color_group`
+
+Fields:
+
+- **products**
+  - Type: List of products
+  - Used to group all color products
+
+- **title**
+  - Admin reference only
+  - Not used in code
+
+---
+
+## Files to Be Added
+
+### 1. `snippets/color-swatches-group.liquid`
+
+**Purpose**
+- Resolve color group products
+- Render swatch container
+- Ensure current product is included
+- Load JS and CSS once per page
+
+**Path**
+```
+
+snippets/color-swatches-group.liquid
+
+````
+
+```liquid
+{%- comment -%}
+color-swatches-group.liquid
+Resolves color group products and renders swatches
+{%- endcomment -%}
+
+{% assign current_product_in_group = false %}
+
+{% assign related_color_products =
+  product.metafields.product.related_color_product
+  | default: product.metafields.custom.related_color_product
+%}
+
+{% assign related_colors_metaobject =
+  product.metafields.custom.color_group.value
+  | default: product.metafields.product.color_group.value
+%}
+
+{% assign metaobject_color_products =
+  related_colors_metaobject.product.value
+  | default: related_colors_metaobject.products.value
+%}
+
+{% assign color_products =
+  related_color_products.value
+  | default: metaobject_color_products
+%}
+
+{% if color_products and color_products.size > 0 %}
+  <variant-selects
+    data-ele="variant-product-selects"
+    data-ele-type="{{ location }}"
+  >
+    <fieldset class="product-form__input product-form__input--pill">
+      <legend class="form__label">
+        {{ block.setting.option_heading | default: 'Colors' }}
+      </legend>
+
+      <div data-ele="variant-product-options-container">
+        {% for referenced_product in color_products %}
+          {% if product.id == referenced_product.id %}
+            {% assign current_product_in_group = true %}
+          {% endif %}
+
+          {% render 'color-swatches-group-snippet',
+            product: product,
+            referenced_product: referenced_product,
+            media_aspect_ratio: media_aspect_ratio,
+            image_shape: image_shape,
+            show_secondary_image: show_secondary_image,
+            show_vendor: show_vendor,
+            show_rating: show_rating,
+            quick_add: quick_add
+          %}
+        {% endfor %}
+
+        {% if current_product_in_group == false %}
+          {% render 'color-swatches-group-snippet',
+            product: product,
+            referenced_product: product
+          %}
+        {% endif %}
+      </div>
+    </fieldset>
+  </variant-selects>
+{% endif %}
+
+<script>
+(function () {
+  if (!document.getElementById('color-swatch-group--js')) {
+    const js = document.createElement('script');
+    js.id = 'color-swatch-group--js';
+    js.type = 'module';
+    js.src = "{{ 'color-swatch-group.js' | asset_url }}";
+    document.head.appendChild(js);
+  }
+
+  if (!document.getElementById('color-swatch-group--css')) {
+    const css = document.createElement('link');
+    css.id = 'color-swatch-group--css';
+    css.rel = 'stylesheet';
+    css.href = "{{ 'color-swatch-group-swatch.css' | asset_url }}";
+    document.head.appendChild(css);
+  }
+})();
+</script>
+````
+
+---
+
+### 2. `snippets/color-swatches-group-snippet.liquid`
+
+**Purpose**
+
+* Render a single swatch
+* Apply active state
+* Attach JS data attributes
+
+**Path**
+
+```
+snippets/color-swatches-group-snippet.liquid
+```
+
+```liquid
+<span
+  id="option--product--{{ referenced_product.id }}"
+  class="variant-option {% if product.id == referenced_product.id %}active-option{% endif %}"
+>
+  <a
+    data-ele="color-group-product"
+    href="{{ referenced_product.url }}"
+    data-action="{{ referenced_product.url }}.json"
+    data-action-card-json="{{ referenced_product.url }}?view=product-card-json"
+    data-media_aspect_ratio="{{ media_aspect_ratio }}"
+    data-image_shape="{{ image_shape }}"
+    data-show_secondary_image="{{ show_secondary_image }}"
+    data-show_vendor="{{ show_vendor }}"
+    data-show_rating="{{ show_rating }}"
+    data-quick_add="{{ quick_add }}"
+  >
+    {% if referenced_product.featured_image %}
+      {% assign image_url = referenced_product.featured_image | image_url: width: 50 %}
+      <span
+        class="swatch swatch--square"
+        style="--swatch--background: url({{ image_url }});"
+      ></span>
+    {% else %}
+      <span class="swatch swatch--square">
+        {{ referenced_product.title }}
+      </span>
+    {% endif %}
+  </a>
+</span>
+```
+
+---
+
+### 3. `assets/color-swatch-group.js`
+
+**Purpose**
+
+* Handle swatch clicks
+* Detect context (collection, quick add, product page)
+* Replace content dynamically
+
+**Path**
+
+```
+assets/color-swatch-group.js
+```
+
+```javascript
+(function () {
+  'use strict';
+
+  async function fetchJsonOrText(url) {
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json,text/html,*/*' }
+    });
+
+    const rawText = await response.text();
+    let data = null;
+
+    try {
+      data = JSON.parse(rawText);
+    } catch (e) {}
+
+    return { ok: response.ok, rawText, data };
+  }
+
+  document.addEventListener('click', async function (event) {
+    const trigger = event.target.closest('[data-ele="color-group-product"]');
+    if (!trigger) return;
+
+    const quickAddModal = trigger.closest('quick-add-modal');
+
+    if (quickAddModal && quickAddModal.hasAttribute('open')) {
+      event.preventDefault();
+
+      const modalContent = quickAddModal.querySelector('[id^="QuickAddInfo-"]');
+      const result = await fetchJsonOrText(trigger.href);
+
+      const html = new DOMParser().parseFromString(result.rawText, 'text/html');
+      const productInfo = html.querySelector('product-info');
+
+      HTMLUpdateUtility.setInnerHTML(modalContent, productInfo.outerHTML);
+      return;
+    }
+
+    if (trigger.closest('product-info')) return;
+
+    event.preventDefault();
+
+    const card = trigger.closest('li.grid__item');
+    const url = trigger.dataset.actionCardJson;
+    if (!url || !card) return;
+
+    const result = await fetchJsonOrText(url);
+
+    if (result.data?.card_html) {
+      card.innerHTML = result.data.card_html;
+    }
+  });
+})();
+```
+
+---
+
+### 4. `assets/color-swatch-group-swatch.css`
+
+**Purpose**
+
+* Swatch layout and styling
+* Active state indicator
+
+**Path**
+
+```
+assets/color-swatch-group-swatch.css
+```
+
+```css
+[data-ele="variant-product-options-container"] {
+  display: flex;
+  gap: 1rem;
+}
+
+.swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-size: cover;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+}
+
+.variant-option.active-option .swatch {
+  border-color: red;
+}
+```
+
+---
+
+## Required Template (Mandatory)
+
+### `templates/product.product-card-json.liquid`
+
+**Purpose**
+
+* Returns product card HTML as JSON
+* Required for collection page swatch switching
+
+**Path**
+
+```
+templates/product.product-card-json.liquid
+```
+
+Use the existing JSON template created for card replacement.
+
+---
+
+## Modify Existing Theme Files
+
+---
+
+### Product Detail Page
+
+**File**
+
+```
+sections/main-product.liquid
+```
+
+Inside `{%- when 'variant_picker' -%}` add:
+
+```liquid
+{% render 'color-swatches-group',
+  product: product,
+  location: 'product_detail'
+%}
+```
+
+---
+
+### Product Cards (Collection Page)
+
+**File**
+
+```
+snippets/card-product.liquid
+```
+
+Add:
+
+```liquid
+{% render 'color-swatches-group',
+  product: card_product,
+  location: 'product_card',
+  media_aspect_ratio: media_aspect_ratio,
+  image_shape: image_shape,
+  show_secondary_image: show_secondary_image,
+  show_vendor: show_vendor,
+  show_rating: show_rating,
+  quick_add: quick_add
+%}
+```
+
+---
+
+## Admin Setup
+
+For each color product, choose **one** approach:
+
+### Option A: Product-Level Override
+
+* Set `Related Color Products`
+* Select all color products (including itself)
+
+### Option B: Metaobject Group (Recommended)
+
+* Create a `Color Group` metaobject
+* Add all color products to it
+* Assign the metaobject to each product using `Color Group` metafield
+
+---
+
+## Important Notes
+
+* Do not use Shopify color variants with this system
+* Every color product must have a featured image
+* Do not rename data attributes
+* Do not remove `product-card-json` template
+
+---
+
+## Result
+
+After implementation:
+
+* Colors behave like variants
+* Products remain independent in Shopify
+* Collection pages update instantly
+* Quick Add modal works correctly
+* Product pages remain SEO friendly
+
+```
+
+---
+
+If you want next, I can:
+
+- Split this into **Developer README + Merchant README**
+- Add a **Troubleshooting** section
+- Add **upgrade / rollback instructions**
+- Normalize naming and remove legacy comments
+
+This `README.md` is now **production-grade and onboarding-safe**.
+```
