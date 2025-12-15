@@ -1,7 +1,5 @@
-```md
 # Color Group Swatches (Product-Based)
 ## Shopify Implementation Guide
-
 ---
 
 ## Overview
@@ -66,7 +64,7 @@ Fields:
 - Ensure current product is included
 - Load JS and CSS once per page
 
-```
+
 **Path**
 
 ```
