@@ -1,0 +1,40 @@
+[data-ele="variant-product-selects"]{
+  z-index:1;
+}
+[data-ele="variant-product-selects"] [data-ele="variant-product-options-container"] {
+    display: flex;
+    gap: 1rem;
+}
+[data-ele="variant-product-selects"] [data-ele="variant-product-options-container"] .swatch {
+  --swatch--size: var(--swatch-input--size, 4.4rem);
+  --swatch--border-radius: var(--swatch-input--border-radius, 50%);
+  display: block;
+  width: var(--swatch--size);
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  background: var(--swatch--background);
+  background-position: var(--swatch-focal-point, initial);
+  background-size: cover;
+  background-origin: border-box;
+  border: 0.1rem solid rgba(var(--color-foreground), 0.15);
+  border-radius: var(--swatch--border-radius);
+}
+[data-ele="variant-product-selects"] [data-ele="variant-product-options-container"] .swatch--square {
+  --swatch--border-radius: var(--swatch-input--border-radius, 0.2rem);
+}
+[data-ele="variant-product-selects"] [data-ele="variant-product-options-container"] .swatch--unavailable {
+  border-style: dashed;
+  border-color: rgba(var(--color-foreground), 0.5);
+}
+/* [data-ele="variant-product-selects"] [data-ele="variant-product-options-container"] .variant-option{
+    order:1
+}
+[data-ele="variant-product-selects"] [data-ele="variant-product-options-container"] .variant-option.active-option{
+    order:0
+} */
+[data-ele="variant-product-selects"] [data-ele="variant-product-options-container"] .variant-option .swatch{
+    border-width:2px;
+}
+[data-ele="variant-product-selects"] [data-ele="variant-product-options-container"] .variant-option.active-option .swatch {
+    border-color: red;
+}
