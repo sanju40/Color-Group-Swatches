@@ -66,7 +66,7 @@ Fields:
 - Ensure current product is included
 - Load JS and CSS once per page
 
-
+```
 **Path**
 
 ```
@@ -434,16 +434,3 @@ After implementation:
 * Quick Add modal works correctly
 * Product pages remain SEO friendly
 
-```
-
----
-
-If you want next, I can:
-
-- Split this into **Developer README + Merchant README**
-- Add a **Troubleshooting** section
-- Add **upgrade / rollback instructions**
-- Normalize naming and remove legacy comments
-
-This `README.md` is now **production-grade and onboarding-safe**.
-```
