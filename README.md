@@ -1,5 +1,3 @@
----
-
 ```md
 # Color Group Swatches (Product-Based)
 ## Shopify Implementation Guide
