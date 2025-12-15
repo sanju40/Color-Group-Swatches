@@ -224,7 +224,103 @@ snippets/color-swatches-group-snippet.liquid
 
 ---
 
-### 3. `assets/color-swatch-group.js`
+### 3. `templates/product.product-card-json.liquid`
+
+**Purpose**
+
+* Render a single product card using AJAX
+* Apply active state
+
+**Path**
+
+```
+templates/product.product-card-json.liquid
+```
+
+```liquid
+{% layout none %}
+
+{%- liquid
+  assign random_hash = 'now' | date: '%s%N'
+  assign section_uid = product.id | append: '--' | append: random_hash
+  assign skip_card_product_styles = false
+  assign lazy_load = false
+  assign media_aspect_ratio = ''
+  assign image_shape = ''
+  assign show_secondary_image = ''
+  assign show_vendor = ''
+  assign show_rating = ''
+  assign quick_add = ''
+  
+
+  # theme-check-disable
+  capture content_for_query_string
+    echo content_for_header
+  endcapture
+  # theme-check-enable
+
+  assign page_url = content_for_query_string | split: '"pageurl":"' | last | split: '"' | first | split: '.myshopify.com' | last | replace: '\/', '/' | replace: '%20', ' ' | replace: '\u0026', '&'
+
+  assign page_query_string = page_url | split: '/' | last
+  assign split_string = page_query_string | split: '?' 
+  assign parameters_raw = split_string[1] | downcase | split: '&'
+  assign parameters = parameters_raw | url_decode
+
+  for parameter in parameters_raw
+    assign parameter_arr = parameter | split: '='
+    assign parameter_property = parameter_arr[0] | downcase
+    if parameter_property == 'media_aspect_ratio'
+      assign media_aspect_ratio = parameter_arr[1]
+    endif
+    if parameter_property == 'image_shape'
+      assign image_shape = parameter_arr[1]
+    endif
+    if parameter_property == 'show_secondary_image'
+      assign show_secondary_image = parameter_arr[1]
+    endif
+    if parameter_property == 'show_vendor'
+      assign show_vendor = parameter_arr[1]
+    endif
+    if parameter_property == 'show_rating'
+      assign show_rating = parameter_arr[1]
+    endif
+    if parameter_property == 'quick_add'
+      assign quick_add = parameter_arr[1]
+    endif
+  endfor
+-%}
+
+{% capture card_html %}
+  {% render 'card-product',
+    card_product: product,
+    lazy_load: lazy_load,
+    skip_styles: skip_card_product_styles,
+    media_aspect_ratio: media_aspect_ratio,
+    image_shape: image_shape,
+    show_secondary_image: show_secondary_image,
+    show_vendor: show_vendor,
+    show_rating: show_rating,
+    quick_add: quick_add,
+    section_id: section_uid
+  %}
+{% endcapture %}
+
+{
+  "id": {{ product.id | json }},
+  "params": {{ parameters | json }},
+  "title": {{ product.title | json }},
+  "handle": {{ product.handle | json }},
+  "description": {{ product.description | json }},
+  "vendor": {{ product.vendor | json }},
+  "images": {{ product.images | json }},
+  "variants": {{ product.variants | json }},
+  "card_html": {{ card_html | json }}
+}
+```
+
+---
+
+### 4. `assets/color-swatch-group.js`
 
 **Purpose**
 
@@ -295,7 +391,7 @@ assets/color-swatch-group.js
 
 ---
 
-### 4. `assets/color-swatch-group-swatch.css`
+### 5. `assets/color-swatch-group-swatch.css`
 
 **Purpose**
 
