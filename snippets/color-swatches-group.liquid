@@ -13,6 +13,7 @@
   Usage:
   {% render 'color-swatches-group', product:product, show_vendor: section.settings.show_vendor %}
 {% endcomment %}
+
 {% assign current_product_in_group = false %}
 {% assign related_color_products = product.metafields.product.related_color_product | default:product.metafields.custom.related_color_product %}
 
@@ -22,7 +23,7 @@
 
 {% comment %} {{ color_products | json }} {% endcomment %}
 {% if color_products and color_products.size > 0 %}
-    <variant-selects id="variant-product-selects-template--{{ section.id }}__main" data-section="template--product-{{ section.id }}__main" data-ele="variant-product-selects" data-ele-type="{{ location }}">
+    <variant-selects data-href-more-option="{{ product.url }}" class="color-swatches" id="variant-product-selects-template--{{ section.id }}__main" data-section="template--product-{{ section.id }}__main" data-ele="variant-product-selects" data-ele-type="{{ location }}" style="display:none">
       <fieldset class="js product-form__input product-form__input--pill">
           <legend class="form__label">{{ block.setting.option_heading | default: 'Colors' }}</legend>
           <div class="variant-product-options-container" data-ele="variant-product-options-container">
@@ -57,24 +58,34 @@
       </fieldset>
     </variant-selects>
 {% endif %}
+<script type="application/json" data-product-variants>
+  {{ product.variants | json }}
+</script>
+
 
 <script>
   (function () {
+    function generateKey() {
+      return Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    }
+
+    const cacheKey = generateKey();
+
     // Load JS module
     if (!document.getElementById('color-swatch-group--js')) {
-      var js = document.createElement('script');
+      const js = document.createElement('script');
       js.id = 'color-swatch-group--js';
       js.type = 'module';
-      js.src = "{{ 'color-swatch-group.js' | asset_url }}";
+      js.src = "{{ 'color-swatch-group-script.js' | asset_url }}?key=" + cacheKey;
       document.head.appendChild(js);
     }
 
     // Load CSS
     if (!document.getElementById('color-swatch-group--css')) {
-      var css = document.createElement('link');
+      const css = document.createElement('link');
       css.id = 'color-swatch-group--css';
       css.rel = 'stylesheet';
-      css.href = "{{ 'color-swatch-group-swatch.css' | asset_url }}";
+      css.href = "{{ 'color-swatch-group-swatch.css' | asset_url }}?key=" + cacheKey;
       document.head.appendChild(css);
     }
   })();

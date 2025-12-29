@@ -320,7 +320,7 @@ templates/product.product-card-json.liquid
 
 ---
 
-### 4. `assets/color-swatch-group.js`
+### 4. `assets/color-swatch-group-script.js`
 
 **Purpose**
 
@@ -488,6 +488,25 @@ Add:
   show_rating: show_rating,
   quick_add: quick_add
 %}
+```
+
+Quick Add:
+```
+<div data-ele="quick-add-icon"
+  class="strch-quick-add" 
+  {% if card_product.has_only_default_variant %} 
+    data-product="only-default-variant" 
+    data-product-default-variant-id="{{ card_product.selected_or_first_available_variant.id }}" 
+  {% endif %}
+  >
+  <div class="quick-add-button-container">
+    <span>
+      <span class="strch-quick-add-icon">
+        {{- 'icon-quick-add.svg' | inline_asset_content -}}
+      </span>
+    </span>
+  </div>
+</div>
 ```
 
 ---

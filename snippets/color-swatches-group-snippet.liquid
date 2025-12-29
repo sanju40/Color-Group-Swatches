@@ -13,31 +13,52 @@
   Usage:
   {% render 'color-swatches-group-snippet', product:product, show_vendor: section.settings.show_vendor %}
 {% endcomment %}
+
+{%- liquid
+  assign swatch_label = referenced_product.title
+
+  # Try to derive a nicer label from a Color option if present
+  if referenced_product.options_with_values
+    for opt in referenced_product.options_with_values
+      assign opt_name_downcase = opt.name | downcase
+      if opt_name_downcase contains 'color'
+        assign swatch_label = opt.selected_value | default: opt.values.first
+        break
+      endif
+    endfor
+  endif
+-%}
+
 <span ele-id="option--product--{{ referenced_product.id }}" class="variant-option {% if product.id == referenced_product.id %} {{ 'active-option' }} {% endif %}">
     <span class="visually-hidden label-unavailable">Variant sold out or unavailable</span>
+    {% if referenced_product.url contains '?' %}
+      {% assign action_url = referenced_product.url | append: '&view=product-card-json' %}
+    {% else %}
+      {% assign action_url = referenced_product.url | append: '?view=product-card-json' %}
+    {% endif %}
     <a 
         data-p-id="{{ product.id }}"
         id="QuickAddInfo-{{ product.id }}"
         data-ele="color-group-product" 
         href="{{ referenced_product.url }}" 
-        data-action="{{ referenced_product.url | append: '.json' }}"
-        data-action-card-json="{{ referenced_product.url | append: '?view=product-card-json' }}"
+        data-action-card-json="{{ action_url }}"
         data-media_aspect_ratio="{{ media_aspect_ratio }}"
         data-image_shape="{{ image_shape }}"
         data-show_secondary_image="{{ show_secondary_image }}"
         data-show_vendor="{{ show_vendor }}"
         data-show_rating="{{ show_rating }}"
         data-quick_add="{{ quick_add }}"
+        title="{{ swatch_label | escape }}"
     >
         {% if referenced_product.featured_image %}
             {%- liquid
-                assign image_url = referenced_product.featured_image | image_url: width: 50
+                assign image_url = referenced_product.featured_image | image_url: width: 100
                 assign swatch_value = 'url(' | append: image_url | append: ')'
                 assign swatch_focal_point = swatch.image.presentation.focal_point
             -%}
             <span
             {% if swatch_value %}
-                class="swatch{% if shape == 'square' %} swatch--square{% endif %}"
+                class="swatch{% if shape == 'square' %} swatch--square{% endif %}" title="{{ swatch_label | escape }}" aria-label="{{ swatch_label | escape }}"
                 style="--swatch--background: {{ swatch_value }};{% if swatch_focal_point %} --swatch-focal-point: {{ swatch_focal_point }};{% endif %}"
             {% endif %}
             ></span>

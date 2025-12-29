@@ -2,7 +2,7 @@
 
 {%- liquid
   assign random_hash = 'now' | date: '%s%N'
-  assign section_uid = product.id | append: '--' | append: random_hash
+  assign section_uid = 'ajax-'| append:product.id | append: '--' | append: random_hash
   assign skip_card_product_styles = false
   assign lazy_load = false
   assign media_aspect_ratio = ''
@@ -29,23 +29,28 @@
   for parameter in parameters_raw
     assign parameter_arr = parameter | split: '='
     assign parameter_property = parameter_arr[0] | downcase
+    if parameter_arr[1] == false or parameter_arr[1] == 'false'
+      assign value_tmp = false
+    else
+      assign value_tmp = parameter_arr[1]
+    endif
     if parameter_property == 'media_aspect_ratio'
-      assign media_aspect_ratio = parameter_arr[1]
+      assign media_aspect_ratio = value_tmp
     endif
     if parameter_property == 'image_shape'
-      assign image_shape = parameter_arr[1]
+      assign image_shape = value_tmp
     endif
     if parameter_property == 'show_secondary_image'
-      assign show_secondary_image = parameter_arr[1]
+      assign show_secondary_image = value_tmp
     endif
     if parameter_property == 'show_vendor'
-      assign show_vendor = parameter_arr[1]
+      assign show_vendor = value_tmp
     endif
     if parameter_property == 'show_rating'
-      assign show_rating = parameter_arr[1]
+      assign show_rating = value_tmp
     endif
     if parameter_property == 'quick_add'
-      assign quick_add = parameter_arr[1]
+      assign quick_add = value_tmp
     endif
   endfor
 -%}
